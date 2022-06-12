@@ -13,19 +13,19 @@ import com.passwordStorage.repo.PostRepository;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import services.AEAD;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Locale;
+import java.util.*;
 
 @Controller
 public class SignUpController {
-    String salt;
-
     public PostRepository getPostRepository() {
         return postRepository;
     }
@@ -43,22 +43,44 @@ public class SignUpController {
     private PostRepository postRepository;
 
     @PostMapping("/signup")
-    public String signUpMain(ModelMap model, @RequestParam("signLogin") String login, @RequestParam("signPassword") String password, @RequestParam("signName") String name, @RequestParam("signSecondName") String secondName, @RequestParam("signMail") String mail) throws NoSuchAlgorithmException {
-        if (!passChecker(password).equals(""))
-        {
-            model.addAttribute("error",passChecker(password));
+    public String signUpMain(ModelMap model, @RequestParam("signLogin") String login, @RequestParam("signPassword") String password, @RequestParam("signName") String name, @RequestParam("signSecondName") String secondName, @RequestParam("signMail") String mail) throws Exception {
+        if (!passChecker(password).equals("")) {
+            model.addAttribute("error", passChecker(password));
             return "signup";
         }
-
+        byte[] IV = IVMaker();
         byte[] salt = saltMaker();
         String hashedPassword = hashPass(password, salt);
+        String IVlty = Base64.getEncoder().encodeToString(IV);
         String salty = Base64.getEncoder().encodeToString(salt);
-        Storage storage = new Storage(login, hashedPassword, name, secondName, mail, salty);
+        Storage storage = new Storage(login, hashedPassword, serviceManager(name,IV), serviceManager(secondName,IV), serviceManager(mail,IV), salty, IVlty);
 
         postRepository.save(storage);
         return "login";
 
     }
+    public byte[] IVMaker()
+    {
+        byte[] IV = new byte[12];
+        SecureRandom random = new SecureRandom();
+        random.nextBytes(IV);
+        return IV;
+    }
+    public String serviceManager(String string, byte[] IV) throws Exception {
+        AEAD service = new AEAD();
+        Scanner scanner = new Scanner("src/main/resources/IVector.txt");
+        String keySpec = scanner.nextLine();
+        SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.getDecoder().decode(keySpec),"AES");
+        SecretKey key = secretKeySpec;
+
+
+
+        byte[] cipherText = AEAD.encrypt(string.getBytes(), key, IV);
+
+        return Base64.getEncoder().encodeToString(cipherText);
+    }
+
+
 
     public String passChecker(String password) {
         String nums = "0123456789";
@@ -73,20 +95,19 @@ public class SignUpController {
         }
         if (password.toLowerCase(Locale.ROOT).equals(password)) {
             lowCase = true;
-            checkResult.append("Please add capital letters"+"\n");
+            checkResult.append("Please add capital letters" + "\n");
         }
         for (int i = 0; i < nums.length(); i++) {
             if (password.contains(String.valueOf(nums.charAt(i)))) {
                 withoutNum = true;
             }
         }
-        if (!withoutNum)
-        {
-            checkResult.append("Please add numbers"+"\n");
+        if (!withoutNum) {
+            checkResult.append("Please add numbers" + "\n");
         }
         if (password.toUpperCase(Locale.ROOT).equals(password)) {
             upCase = true;
-            checkResult.append("Please add small letters"+"\n");
+            checkResult.append("Please add small letters" + "\n");
         }
         for (int i = 0; i < symbols.length(); i++) {
             if (password.contains(String.valueOf(symbols.charAt(i)))) {
@@ -95,7 +116,7 @@ public class SignUpController {
             }
         }
         if (!withoutSymbols) {
-            checkResult.append("Please add symbols"+"\n");
+            checkResult.append("Please add symbols" + "\n");
         }
         return checkResult.toString();
     }
@@ -111,6 +132,7 @@ public class SignUpController {
         }
         return hashPass.toString();
     }
+
 
     public byte[] saltMaker() {
         SecureRandom random = new SecureRandom();

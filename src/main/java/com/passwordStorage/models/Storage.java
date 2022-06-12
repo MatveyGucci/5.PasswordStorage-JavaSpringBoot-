@@ -11,19 +11,28 @@ public class Storage {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    private String login, password, name, secondName, email, salt;
+    private String login, password, name, secondName, email, salt, IV;
 
 
     public Storage() {
     }
 
-    public Storage(String login, String hashedPassword, String name, String secondName, String mail, String salty) {
+    public String getIV() {
+        return IV;
+    }
+
+    public void setIV(String IV) {
+        this.IV = IV;
+    }
+
+    public Storage(String login, String hashedPassword, String name, String secondName, String mail, String salty, String IV) {
         this.login = login;
         this.password = hashedPassword;
         this.name = name;
         this.secondName = secondName;
         this.email = mail;
         this.salt = salty;
+        this.IV = IV;
     }
 
     @Override
