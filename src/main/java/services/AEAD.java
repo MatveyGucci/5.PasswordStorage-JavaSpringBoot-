@@ -15,9 +15,6 @@ import static sun.security.krb5.internal.crypto.Aes256.encrypt;
 
 public class AEAD {
 
-        static String plainText = "This is a plain text which need to be encrypted by Java AES 256 GCM Encryption Algorithm";
-        public static final int AES_KEY_SIZE = 256;
-        public static final int GCM_IV_LENGTH = 12;
         public static final int GCM_TAG_LENGTH = 16;
 
 

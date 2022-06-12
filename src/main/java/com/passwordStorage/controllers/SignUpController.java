@@ -19,6 +19,8 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -68,8 +70,7 @@ public class SignUpController {
     }
     public String serviceManager(String string, byte[] IV) throws Exception {
         AEAD service = new AEAD();
-        Scanner scanner = new Scanner("src/main/resources/IVector.txt");
-        String keySpec = scanner.nextLine();
+        String keySpec = Files.readString(Path.of("src/main/resources/IVector"));
         SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.getDecoder().decode(keySpec),"AES");
         SecretKey key = secretKeySpec;
 
