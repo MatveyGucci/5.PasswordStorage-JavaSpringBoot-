@@ -8,8 +8,14 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import services.AEAD;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -33,7 +39,7 @@ public class LoginController {
     }
 
     @PostMapping("/login")
-    public String home(Model model, @RequestParam("logLogin") String login, @RequestParam("logPassword") String password) throws NoSuchAlgorithmException {
+    public String home(Model model, @RequestParam("logLogin") String login, @RequestParam("logPassword") String password) throws Exception {
         ArrayList<Storage> findAll = (ArrayList<Storage>) postRepository.findAll();
         System.out.println(login);
         String salt ="";
@@ -60,19 +66,34 @@ public class LoginController {
             hashPass.append((char) b);
         }
         System.out.println(hashPass);
+        Storage storage = null;
         for (Storage object: findAll) {
             if (Objects.equals(object.getLogin(), login)){
                 if (Objects.equals(object.getPassword(), hashPass.toString())){
                     flagPass = true;
+                    storage = object;
                 }
             }
         }
-        if (flagPass)
-        {
-            return "successfulLogin";
+        if (storage!=null) {
+            StringBuilder stringBuilder = new StringBuilder();
+            String keySpec = Files.readString(Path.of("src/main/resources/IVector"));
+            SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.getDecoder().decode(keySpec), "AES");
+            SecretKey key = secretKeySpec;
+            stringBuilder.append(AEAD.decrypt(Base64.getDecoder().decode(storage.getName()), key, Base64.getDecoder().decode(storage.getIV())));
+            stringBuilder.append("       ");
+            stringBuilder.append(AEAD.decrypt(Base64.getDecoder().decode(storage.getSecondName()), key, Base64.getDecoder().decode(storage.getIV())));
+            stringBuilder.append("       ");
+            stringBuilder.append(AEAD.decrypt(Base64.getDecoder().decode(storage.getEmail()), key, Base64.getDecoder().decode(storage.getIV())));
+
+
+            if (flagPass) {
+                model.addAttribute("storage", stringBuilder.toString());
+                return "successfulLogin";
+            } else {
+                return "login";
+            }
         }
-        else {
-            return "login";
-        }
+        return "login";
     }
 }

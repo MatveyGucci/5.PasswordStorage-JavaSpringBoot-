@@ -73,11 +73,7 @@ public class SignUpController {
         String keySpec = Files.readString(Path.of("src/main/resources/IVector"));
         SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.getDecoder().decode(keySpec),"AES");
         SecretKey key = secretKeySpec;
-
-
-
         byte[] cipherText = AEAD.encrypt(string.getBytes(), key, IV);
-
         return Base64.getEncoder().encodeToString(cipherText);
     }
 
